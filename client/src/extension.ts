@@ -1,5 +1,6 @@
 import * as path from "path";
 import { promises as fs } from "fs";
+import * as Net from "net";
 
 import {
   workspace,
@@ -20,6 +21,18 @@ import {
   TextDocument,
   languages,
   env,
+  debug,
+  DebugConfigurationProvider,
+  WorkspaceFolder,
+  DebugAdapterDescriptorFactory,
+  DebugConfiguration,
+  ProviderResult,
+  CancellationToken,
+  DebugSession,
+  DebugAdapterExecutable,
+  DebugAdapterDescriptor,
+  DebugAdapterServer,
+  DebugAdapterInlineImplementation,
 } from "vscode";
 import {
   LanguageClient,
@@ -30,8 +43,10 @@ import {
 import getport from "get-port";
 import execa from "execa";
 import { init, localize } from "vscode-nls-i18n";
+import { MockDebugSession } from "./mockDebug";
 
 import { TreeViewProvider } from "./tree_view_provider";
+
 import { ImportMap } from "../../core/import_map";
 import { HashMeta } from "../../core/hash_meta";
 import { isInDeno } from "../../core/deno";
@@ -40,6 +55,12 @@ import { Request, Notification } from "../../core/const";
 
 const TYPESCRIPT_EXTENSION_NAME = "vscode.typescript-language-features";
 const TYPESCRIPT_DENO_PLUGIN_ID = "typescript-deno-plugin";
+
+/*
+ * The compile time flag 'runMode' controls how the debug adapter is run.
+ * Please note: the test suite only supports 'external' mode.
+ */
+const runMode: "external" | "server" | "inline" = "inline";
 
 type SynchronizedConfiguration = {
   enable?: boolean;
@@ -90,6 +111,117 @@ async function getTypescriptAPI(): Promise<TypescriptAPI> {
   }
 
   return api;
+}
+
+class MockConfigurationProvider implements DebugConfigurationProvider {
+  /**
+   * Massage a debug configuration just before a debug session is being launched,
+   * e.g. add all missing attributes to the debug configuration.
+   */
+  resolveDebugConfiguration(
+    _folder: WorkspaceFolder | undefined,
+    config: DebugConfiguration,
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    _token?: CancellationToken
+  ): ProviderResult<DebugConfiguration> {
+    // if launch.json is missing or empty
+    if (!config.type && !config.request && !config.name) {
+      const editor = window.activeTextEditor;
+      const languages = [
+        "typescript",
+        "typescriptreact",
+        "javascript",
+        "javascriptreact",
+      ];
+      if (editor && languages.includes(editor.document.languageId)) {
+        config.type = "deno";
+        config.name = "Launch";
+        config.request = "launch";
+        config.program = "${file}";
+        config.stopOnEntry = true;
+      }
+    }
+
+    if (!config.program) {
+      return (
+        window
+          .showInformationMessage("Cannot find a program to debug")
+          // eslint-disable-next-line @typescript-eslint/no-unused-vars
+          .then((_) => {
+            return undefined; // abort launch
+          })
+      );
+    }
+
+    return config;
+  }
+}
+
+class DebugAdapterExecutableFactory implements DebugAdapterDescriptorFactory {
+  // The following use of a DebugAdapter factory shows how to control what debug adapter executable is used.
+  // Since the code implements the default behavior, it is absolutely not neccessary and we show it here only for educational purpose.
+
+  createDebugAdapterDescriptor(
+    _session: DebugSession,
+    executable: DebugAdapterExecutable | undefined
+  ): ProviderResult<DebugAdapterDescriptor> {
+    // param "executable" contains the executable optionally specified in the package.json (if any)
+
+    // use the executable specified in the package.json if it exists or determine it based on some other information (e.g. the session)
+    if (!executable) {
+      const command = "absolute path to my DA executable";
+      const args = ["some args", "another arg"];
+      const options = {
+        cwd: "working directory for executable",
+        env: { VAR: "some value" },
+      };
+      executable = new DebugAdapterExecutable(command, args, options);
+    }
+
+    // make VS Code launch the DA executable
+    return executable;
+  }
+}
+
+class MockDebugAdapterDescriptorFactory
+  implements DebugAdapterDescriptorFactory {
+  private server?: Net.Server;
+
+  createDebugAdapterDescriptor(
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    _session: DebugSession,
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    _executable: DebugAdapterExecutable | undefined
+  ): ProviderResult<DebugAdapterDescriptor> {
+    if (!this.server) {
+      // start listening on a random port
+      this.server = Net.createServer((socket) => {
+        const session = new MockDebugSession();
+        session.setRunAsServer(true);
+        session.start(socket as NodeJS.ReadableStream, socket);
+      }).listen(0);
+    }
+
+    // make VS Code connect to debug server
+    return new DebugAdapterServer(
+      (this.server.address() as Net.AddressInfo).port
+    );
+  }
+
+  dispose() {
+    if (this.server) {
+      this.server.close();
+    }
+  }
+}
+
+class InlineDebugAdapterFactory implements DebugAdapterDescriptorFactory {
+  createDebugAdapterDescriptor(
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    _session: DebugSession
+  ): ProviderResult<DebugAdapterDescriptor> {
+    return new DebugAdapterInlineImplementation(new MockDebugSession());
+  }
 }
 
 export class Extension {
@@ -155,7 +287,7 @@ export class Extension {
   // register command for deno extension
   private registerCommand(
     command: string,
-    handler: (...argv: never[]) => void | Promise<void>
+    handler: (...argv: never[]) => unknown | Promise<unknown>
   ) {
     this.context.subscriptions.push(
       commands.registerCommand(
@@ -471,6 +603,62 @@ Executable ${this.denoInfo.executablePath}`;
       await env.clipboard.writeText(text);
       await window.showInformationMessage(`Copied to clipboard.`);
     });
+
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    this.registerCommand("debug.getProgramName", async (_config) => {
+      const value = await window.showInputBox({
+        placeHolder:
+          "Please enter the name of a markdown file in the workspace folder",
+        value: "README.md",
+      });
+
+      if (value) {
+        return value;
+      }
+    });
+
+    // register a configuration provider for 'deno' debug type
+    const provider = new MockConfigurationProvider();
+    context.subscriptions.push(
+      debug.registerDebugConfigurationProvider("deno", provider)
+    );
+
+    // debug adapters can be run in different ways by using a vscode.DebugAdapterDescriptorFactory:
+    let factory: DebugAdapterDescriptorFactory;
+    switch (runMode) {
+      case "server":
+        // run the debug adapter as a server inside the extension and communicating via a socket
+        factory = new MockDebugAdapterDescriptorFactory();
+        break;
+
+      case "inline":
+        // run the debug adapter inside the extension and directly talk to it
+        factory = new InlineDebugAdapterFactory();
+        break;
+
+      case "external":
+      default:
+        // run the debug adapter as a separate process
+        factory = new DebugAdapterExecutableFactory();
+        break;
+    }
+
+    context.subscriptions.push(
+      debug.registerDebugAdapterDescriptorFactory("deno", factory)
+    );
+    if ("dispose" in factory) {
+      context.subscriptions.push(factory);
+    }
+
+    // override VS Code's default implementation of the debug hover
+    /*
+    vscode.languages.registerEvaluatableExpressionProvider('markdown', {
+      provideEvaluatableExpression(document: vscode.TextDocument, position: vscode.Position): vscode.ProviderResult<vscode.EvaluatableExpression> {
+        const wordRange = document.getWordRangeAtPosition(position);
+        return wordRange ? new vscode.EvaluatableExpression(wordRange) : undefined;
+      }
+    });
+    */
 
     this.registerQuickFix({
       _fetch_remote_module: async (editor, text) => {
