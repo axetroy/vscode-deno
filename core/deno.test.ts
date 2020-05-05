@@ -8,7 +8,7 @@ import {
   getDenoDepsDir,
   getDenoDts,
   isInDeno,
-  URL2filepath,
+  ConvertURL2Filepath,
 } from "./deno";
 
 test("core / deno", () => {
@@ -38,8 +38,8 @@ test("core / deno / getDenoDts()", () => {
   );
 });
 
-test("core / deno / URL2filepath()", () => {
-  expect(URL2filepath(new URL("https://example.com/esm/mod.ts"))).toBe(
+test("core / deno / ConvertURL2Filepath()", () => {
+  expect(ConvertURL2Filepath(new URL("https://example.com/esm/mod.ts"))).toBe(
     path.join(
       getDenoDepsDir(),
       "https",

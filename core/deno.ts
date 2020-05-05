@@ -50,7 +50,7 @@ export function isInDeno(filepath: string): boolean {
   return filepath.startsWith(denoDir);
 }
 
-export function URL2filepath(url: URL): string {
+export function ConvertURL2Filepath(url: URL): string {
   return path.join(
     getDenoDepsDir(),
     url.protocol.replace(/:$/, ""), // https: -> https
