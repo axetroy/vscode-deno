@@ -560,15 +560,16 @@ Executable ${this.denoInfo.executablePath}`;
         let defaultTextContent = "";
 
         switch (extName) {
-          case ".json":
-            defaultTextContent = "{}";
-            break;
           case ".js":
           case ".jsx":
           case ".ts":
           case ".tsx":
             defaultTextContent = "export function example () {}";
             break;
+          default:
+            this.output.appendLine(`Unknown module \`${text}\``);
+            this.output.show();
+            return;
         }
 
         const absModuleFilepath = path.isAbsolute(text)
