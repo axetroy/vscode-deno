@@ -35,7 +35,7 @@ import * as semver from "semver";
 import { TreeViewProvider } from "./tree_view_provider";
 import { ImportMap } from "../../core/import_map";
 import { HashMeta } from "../../core/hash_meta";
-import { isInDeno } from "../../core/deno";
+import { deno } from "../../core/deno";
 import { isValidDenoDocument } from "../../core/util";
 import { Request, Notification } from "../../core/const";
 import {
@@ -263,7 +263,7 @@ export class Extension {
               return next(document, position, context, token);
             },
             provideCodeLenses: (document, token, next) => {
-              if (!isInDeno(document.uri.fsPath)) {
+              if (!deno.isDenoCachedModule(document.uri.fsPath)) {
                 return;
               }
               return next(document, token);
@@ -417,7 +417,7 @@ Executable ${this.denoInfo.executablePath}`;
 
     const filepath = document.uri.fsPath;
 
-    if (isInDeno(filepath)) {
+    if (deno.isDenoCachedModule(filepath)) {
       const meta = HashMeta.create(filepath + ".metadata.json");
       if (meta) {
         await languages.setTextDocumentLanguage(

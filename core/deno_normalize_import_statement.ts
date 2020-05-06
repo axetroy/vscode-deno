@@ -1,6 +1,6 @@
 import * as path from "path";
 
-import { getDenoDepsDir } from "./deno";
+import { deno } from "./deno";
 import { CacheModule } from "./deno_cache";
 import { normalizeFilepath } from "./util";
 import { Logger } from "./logger";
@@ -39,7 +39,7 @@ export function normalizeImportStatement(
     );
 
     /* istanbul ignore else */
-    if (moduleAbsoluteFilepath.startsWith(getDenoDepsDir())) {
+    if (moduleAbsoluteFilepath.startsWith(deno.DENO_DEPS_DIR)) {
       const cache = CacheModule.create(moduleAbsoluteFilepath);
       /* istanbul ignore else */
       if (cache) {

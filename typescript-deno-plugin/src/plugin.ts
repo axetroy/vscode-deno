@@ -5,7 +5,7 @@ import ts_module from "typescript/lib/tsserverlibrary";
 
 import { Logger } from "./logger";
 import { Configuration, ConfigurationField } from "../../core/configuration";
-import { getDenoDts } from "../../core/deno";
+import { deno } from "../../core/deno";
 import { ModuleResolver } from "../../core/module_resolver";
 import { CacheModule } from "../../core/deno_cache";
 import { normalizeFilepath, isUntitledDocument } from "../../core/util";
@@ -174,9 +174,7 @@ export class DenoPlugin implements ts_module.server.PluginModule {
       }
 
       // Get typescript declaration File
-      const dtsFiles = [
-        getDenoDts(!!this.configurationManager.config.unstable),
-      ];
+      const dtsFiles = [deno.TYPE_FILE];
 
       const iterator = new Set(dtsFiles).entries();
 
@@ -500,6 +498,7 @@ export class DenoPlugin implements ts_module.server.PluginModule {
     this.configurationManager.resolveFromVscode(projectDirectory);
 
     this.configurationManager.onUpdatedConfig(() => {
+      deno.enableUnstableMode(!!this.configurationManager.config.unstable);
       project.refreshDiagnostics();
       project.updateGraph();
       languageService.getProgram()?.emit();

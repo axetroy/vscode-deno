@@ -2,7 +2,7 @@ import * as path from "path";
 import { URL } from "url";
 import assert from "assert";
 
-import { getDenoDepsDir } from "./deno";
+import { deno } from "./deno";
 import { HashMeta } from "./hash_meta";
 import { pathExistsSync, isHttpURL, hashURL, normalizeFilepath } from "./util";
 import { Logger } from "./logger";
@@ -23,9 +23,8 @@ export class CacheModule implements DenoCacheModule {
       return;
     }
 
-    const DENO_DEPS_DIR = getDenoDepsDir();
     // if not a Deno deps module
-    if (filepath.indexOf(DENO_DEPS_DIR) !== 0) {
+    if (filepath.indexOf(deno.DENO_DEPS_DIR) !== 0) {
       return;
     }
 
@@ -123,7 +122,7 @@ export class CacheModule implements DenoCacheModule {
     else if (isHttpURL(moduleName)) {
       url = new URL(moduleName);
       targetOriginDir = path.join(
-        getDenoDepsDir(),
+        deno.DENO_DEPS_DIR,
         url.protocol.replace(/:$/, ""), // https: -> https
         url.hostname
       );

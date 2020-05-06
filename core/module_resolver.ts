@@ -2,7 +2,7 @@ import { URL } from "url";
 import * as path from "path";
 import assert from "assert";
 
-import { getDenoDepsDir } from "./deno";
+import { deno } from "./deno";
 import { CacheModule, DenoCacheModule } from "./deno_cache";
 import { ImportMap } from "./import_map";
 import { HashMeta } from "./hash_meta";
@@ -73,7 +73,7 @@ export class ModuleResolver implements ModuleResolverInterface {
     const url = new URL(httpModuleURL);
 
     const originDir = path.join(
-      getDenoDepsDir(),
+      deno.DENO_DEPS_DIR,
       url.protocol.replace(/:$/, ""), // https: -> https
       url.hostname
     );

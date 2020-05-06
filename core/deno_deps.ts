@@ -3,7 +3,7 @@ import { promises as fs } from "fs";
 
 import typescript = require("typescript");
 
-import { getDenoDepsDir } from "./deno";
+import { deno } from "./deno";
 import { HashMeta } from "./hash_meta";
 import { parseCompileHint } from "./deno_type_hint";
 
@@ -30,7 +30,7 @@ export type Range = {
  * Get cached dependency files
  */
 export async function getAllDenoCachedDeps(): Promise<Deps[]> {
-  const depsRootDir = getDenoDepsDir();
+  const depsRootDir = deno.DENO_DEPS_DIR;
   const deps: Deps[] = [];
   const protocols = await fs.readdir(depsRootDir);
 

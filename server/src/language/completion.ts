@@ -8,7 +8,7 @@ import {
 } from "vscode-languageserver";
 import { TextDocument } from "vscode-languageserver-textdocument";
 
-import { getDenoDir } from "../../../core/deno";
+import { deno } from "../../../core/deno";
 import { getAllDenoCachedDeps, Deps } from "../../../core/deno_deps";
 import { Cache } from "../../../core/cache";
 
@@ -71,7 +71,7 @@ export class Completion {
           label: dep.url,
           detail: dep.url,
           sortText: dep.url,
-          documentation: dep.filepath.replace(getDenoDir(), "$DENO_DIR"),
+          documentation: dep.filepath.replace(deno.DENO_DIR, "$DENO_DIR"),
           kind: CompletionItemKind.File,
           insertText: dep.url,
           cancel: partialResultToken,

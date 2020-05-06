@@ -9,7 +9,7 @@ import { URI } from "vscode-uri";
 import { localize } from "vscode-nls-i18n";
 
 import { CacheModule } from "../../../core/deno_cache";
-import { isInDeno } from "../../../core/deno";
+import { deno } from "../../../core/deno";
 
 export class CodeLens {
   constructor(connection: IConnection, documents: TextDocuments<TextDocument>) {
@@ -24,7 +24,7 @@ export class CodeLens {
 
       const filepath = URI.parse(document.uri).fsPath;
 
-      if (!isInDeno(filepath)) {
+      if (!deno.isDenoCachedModule(filepath)) {
         return [];
       }
 
