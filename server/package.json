@@ -3,7 +3,7 @@
     "vscode": "^1.43.0"
   },
   "dependencies": {
-    "execa": "4.0.0",
+    "execa": "4.0.1",
     "typescript": "3.8.3",
     "vscode-languageserver": "6.1.1",
     "vscode-languageserver-textdocument": "1.0.1",
