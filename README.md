@@ -1,3 +1,5 @@
+> The project is no longer maintained. move to [official extension](https://github.com/denoland/vscode_deno)
+
 English | [中文简体](README_zh-CN.md)
 
 <div align="center">

@@ -1,3 +1,5 @@
+> 该项目不再维护。 请移至 [官方扩展](https://github.com/denoland/vscode_deno)
+
 [English](README.md) | 中文简体
 
 <div align="center">
