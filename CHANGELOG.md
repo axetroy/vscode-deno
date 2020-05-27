@@ -1,3 +1,15 @@
+# [4.0.0](https://github.com/axetroy/vscode-deno/compare/v3.7.0...v4.0.0) (2020-05-27)
+
+### Features
+
+- deprecated ([7729788](https://github.com/axetroy/vscode-deno/commit/7729788c37ae23fe206ca218a0bbf8253063077c))
+
+### Reverts
+
+- Revert "deprecated" ([6d13713](https://github.com/axetroy/vscode-deno/commit/6d1371328a843e0c937ea80ae81fb07400a9826a))
+- Revert "refactor: remove unused extension" ([25b190b](https://github.com/axetroy/vscode-deno/commit/25b190bf790d930962ab63faa285b0b51cbca9b3))
+- Revert "refactor: update" ([479ecd2](https://github.com/axetroy/vscode-deno/commit/479ecd2268b9b3edc087043cca6b4fce954959c0))
+
 # [3.7.0](https://github.com/axetroy/vscode-deno/compare/v3.6.2...v3.7.0) (2020-05-05)
 
 ### Features
